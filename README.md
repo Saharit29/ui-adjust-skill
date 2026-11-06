@@ -1,11 +1,21 @@
 # ui-adjust
 
 > An [Agent Skill](https://docs.claude.com/en/docs/claude-code/skills) for Claude Code that turns a Figma design (screenshot,
-> "Copy as CSS", or a description) into changes to an **existing React + MUI screen** — using your theme tokens,
+> "Copy as CSS", or a description) into changes to an **existing MUI or Tailwind CSS screen** — using your theme tokens,
 > the theme the component actually renders under, and your shared components, instead of pasted hex/px values.
 
-Skill สำหรับ Claude Code ใช้ **ปรับ UI ของหน้าจอหรือ component (React + MUI) ที่มีอยู่แล้วให้ตรงกับแบบ** โดยที่โค้ดยังเป็นของ
-design system: สีเป็น theme token, ระยะเป็น spacing unit, ตัวอักษรเป็น typography variant และใช้ shared component ของโปรเจกต์
+Skill สำหรับ Claude Code ใช้ **ปรับ UI ของหน้าจอหรือ component ที่มีอยู่แล้วให้ตรงกับแบบ** โดยที่โค้ดยังเป็นของ design system:
+สีเป็น theme token, ระยะเป็น spacing scale, ตัวอักษรเป็น variant / `text-*` และใช้ shared component ของโปรเจกต์
+
+## รองรับอะไรบ้าง
+
+| Stack | workflow | `init-config` | `figma-css-to-sx` | `check-ui` | `which-theme` |
+|---|---|---|---|---|---|
+| **React + MUI** (รวม Joy UI) | ✓ | ✓ `createTheme` / palette files | ✓ `sx` + variant | ✓ 22 ข้อ | ✓ |
+| **Tailwind CSS v4** (React, Vue, Svelte, Astro, HTML) | ✓ | ✓ `@theme` ใน CSS + default ของ Tailwind | ✓ `className` | ✓ 22 ข้อ | — (theme เดียว) |
+| **Tailwind CSS v3** | ✓ | ✓ `tailwind.config.*` | ✓ `className` | ✓ | — |
+| React + Chakra / Mantine / styled-components | ✓ | เขียน config เอง | ใช้ค่าเป็นแนวทาง (syntax ต่าง) | กฎทั่วไปใช้ได้ | ✓ ถ้าประกาศ wrapper |
+| Vue / Angular / Flutter แบบไม่ใช้ Tailwind | ✓ แนวคิด | — | — | กฎ hex/inline style บางส่วน | — |
 
 ## แก้ปัญหาอะไร
 
@@ -18,9 +28,10 @@ design system: สีเป็น theme token, ระยะเป็น spacing 
 | ลอก layout noise | Figma ใส่ `position: absolute; left: 1164px`, `width: 128px`, `font-family` มาทุก layer | layout แตกเมื่อข้อมูลยาวขึ้น |
 | เขียนทับสิ่งที่ theme/shared component ทำแล้ว | ไม่รู้ว่าปุ่ม/การ์ด/ตารางมี override อยู่ | ปุ่มหน้านี้สูงไม่เท่าปุ่มอื่นทั้งระบบ |
 | snap สีนอก palette เข้า token เงียบ ๆ | สีขอบพิเศษดู "คล้าย" divider | สีบนจอเปลี่ยนไปจากแบบ โดยไม่มีใครรู้ |
-| a11y ของ MUI ที่ดูถูกแต่ใช้ไม่ได้ | `aria-label` บน `<WarningIcon>` | MUI ใส่ `aria-hidden` ให้ไอคอน — screen reader ไม่อ่าน |
+| Tailwind arbitrary value | ลอก `#FEF3F2`, `16px`, `14px` จาก Figma | `bg-[#FEF3F2] p-[16px] text-[14px]` แทน `bg-danger-50 p-4 text-sm` |
+| a11y ของ icon ที่ดูถูกแต่ใช้ไม่ได้ | `aria-label` บน `<WarningIcon>` | MUI และ icon kit ส่วนใหญ่ใส่ `aria-hidden` ให้ไอคอน — screen reader ไม่อ่าน |
 
-Skill นี้ให้ workflow ที่หา theme ก่อนแก้ สคริปต์แปลง CSS → `sx` ด้วย token ของโปรเจกต์ และสคริปต์ตรวจผล 13 ข้อ
+Skill นี้ให้ workflow ที่หา theme ก่อนแก้ สคริปต์แปลง CSS → `sx` หรือ Tailwind class ด้วย token ของโปรเจกต์ และสคริปต์ตรวจผล 22 ข้อ
 ค่าของแต่ละโปรเจกต์อยู่ใน `ui-adjust.config.json` ไฟล์เดียว (สร้างอัตโนมัติจากไฟล์ theme)
 
 ## โครงสร้าง
@@ -33,15 +44,17 @@ ui-adjust/
 │   ├── mapping-rules.md             # กติกาแปลงสี/ระยะ/ตัวอักษร/มุม/เงา และสิ่งที่ทิ้งได้เสมอ
 │   └── config.md                    # อธิบาย ui-adjust.config.json ทีละ field
 ├── scripts/                         # Node 18+, ไม่มี dependency
-│   ├── init-config.mjs              # อ่านไฟล์ theme ของ MUI → สร้าง config · --check ตรวจว่า config ยังตรงกับ theme
+│   ├── init-config.mjs              # อ่าน theme (MUI / Tailwind v3 / v4) → สร้าง config · --check ตรวจว่า config ยังตรงกับ theme
 │   ├── which-theme.mjs              # component นี้ render อยู่ใต้ theme ไหน (ไล่หา wrapper ของ ThemeProvider)
-│   ├── figma-css-to-sx.mjs          # CSS จาก Figma → sx ที่ใช้ token + รายการ DROPPED / REVIEW
-│   ├── check-ui.mjs                 # ตรวจไฟล์ .tsx 13 ข้อ (FAIL/WARN), exit 1 เมื่อมี FAIL
-│   └── lib/                         # config loader, ตัวอ่าน theme
+│   ├── figma-css-to-sx.mjs          # CSS จาก Figma → sx หรือ Tailwind class ที่ใช้ token + รายการ DROPPED / REVIEW
+│   ├── check-ui.mjs                 # ตรวจ .tsx .jsx .vue .svelte .astro .html 22 ข้อ (FAIL/WARN), exit 1 เมื่อมี FAIL
+│   └── lib/                         # config loader, ตัวอ่าน theme ของ MUI/Tailwind, ตัวแปลงเป็น Tailwind
 ├── templates/
 │   ├── ui-adjust.config.example.json
 │   └── ui-adjust.config.schema.json # JSON schema (autocomplete ใน editor)
-├── examples/sample-app/             # โปรเจกต์ MUI ขนาดเล็กที่ใช้ทดสอบ (2 theme, AppButton, EmptyState)
+├── examples/
+│   ├── sample-app/                  # โปรเจกต์ MUI ขนาดเล็กที่ใช้ทดสอบ (2 theme, AppButton, EmptyState)
+│   └── sample-tailwind/             # โปรเจกต์ React + Tailwind v4 ขนาดเล็กที่ใช้ทดสอบ (@theme tokens, Button)
 └── evals/                           # rubric, CSS จาก Figma ที่ใช้ทดสอบ, ผลรันดิบ, ผลเทียบ
 ```
 
@@ -63,6 +76,9 @@ node .claude/skills/ui-adjust/scripts/init-config.mjs \
 
 #    มี theme ซ้อน? เพิ่ม:  --theme dense=src/theme/dense-theme.ts --wrapper dense=DenseSection
 
+#    Tailwind v4:  node .claude/skills/ui-adjust/scripts/init-config.mjs --tailwind src/app.css --components src/components/ui
+#    Tailwind v3:  node .claude/skills/ui-adjust/scripts/init-config.mjs --tailwind tailwind.config.js --components src/components
+
 # 3) เปิด config ตรวจ แล้วเติม "handled" / "shadows" / component roles (ดู references/config.md)
 ```
 
@@ -80,8 +96,8 @@ node .claude/skills/ui-adjust/scripts/init-config.mjs \
 หรือพิมพ์ปกติ Claude จะเลือก skill เองจากคำว่า "ปรับตามแบบ", "match the Figma", "แก้ให้เหมือน figma"
 
 Claude จะทำตามลำดับ:
-1. `which-theme.mjs` หาว่า component อยู่ใต้ theme ไหน
-2. `figma-css-to-sx.mjs` แปลง CSS แล้วเทียบกับภาพ
+1. `which-theme.mjs` หาว่า component อยู่ใต้ theme ไหน (MUI / React provider)
+2. `figma-css-to-sx.mjs` แปลง CSS เป็น `sx` หรือ Tailwind class แล้วเทียบกับภาพ
 3. จับคู่กับ shared component และ override ของ theme
 4. ตัดสินใจกับค่าที่ไม่ลง token และหยุดถามถ้าต้องแก้ palette/มาตรฐาน component
 5. แก้โค้ดแบบ diff เล็กที่สุด พร้อม state และ a11y ที่แบบไม่ได้วาด
@@ -110,8 +126,16 @@ node $S/figma-css-to-sx.mjs figma.css --theme dense
 #     DROPPED  width: 80px — fixed artboard size; let content/flex decide
 #     DROPPED  font-family: 'Inter' — theme typography already sets the font family
 
+# โปรเจกต์ Tailwind (config "format": "tailwind")
+node $S/figma-css-to-sx.mjs figma.css
+#   ── Balance / Overdue
+#   <div (flex) className="flex items-center py-1 px-2 gap-1 bg-danger-50 border border-red-300 rounded-md" />
+#     REVIEW   border: #FDA29B ≈ red-300 (#FFA2A2, Δ12) — snapped to the token; mention it in the report
+
 node $S/check-ui.mjs --diff                  # เฉพาะบรรทัดที่แก้ เทียบกับ HEAD (ใช้ก่อน commit / รีวิว PR)
-node $S/check-ui.mjs src/features/**/*.tsx   # audit ทั้ง folder
+node $S/check-ui.mjs src/features/**/*.tsx   # audit ทั้ง folder (.vue .svelte .html ก็ได้)
+#   FAIL tw-token-arbitrary  L4  bg-[#FEF3F2] → bg-danger-50
+#   WARN tw-arbitrary-text   L4  text-[14px] → text-sm
 node $S/init-config.mjs --check              # หลังแก้ theme
 ```
 
@@ -119,7 +143,9 @@ node $S/init-config.mjs --check              # หลังแก้ theme
 
 ## ใช้กับโปรเจกต์อื่นได้อย่างไร
 
-- **ทุกโปรเจกต์ React + MUI** — สิ่งเดียวที่ต่างคือ `ui-adjust.config.json` ซึ่งสร้างจากไฟล์ theme ได้ใน 1 คำสั่ง
+- **ทุกโปรเจกต์ MUI หรือ Tailwind** — สิ่งเดียวที่ต่างคือ `ui-adjust.config.json` ซึ่งสร้างจากไฟล์ theme ได้ใน 1 คำสั่ง
+- **Tailwind นอก React** (Vue, Svelte, Astro, HTML) — `init-config`, `figma-css-to-sx` และ `check-ui` ใช้ได้เหมือนกัน
+  เพราะทำงานกับ class string ไม่ใช่ JSX
 - **theme เดียวหรือหลาย theme** — ใส่ `--theme` กี่ตัวก็ได้ theme ที่มี `--wrapper` จะถูกหาด้วย `which-theme.mjs`
 - **กติกาเฉพาะโปรเจกต์** (สีสถานะพิเศษ, ข้อห้ามของ component) — เขียนเป็น markdown แล้วใส่ path ใน `docs` ของ config
   Claude จะอ่านก่อนเริ่มงาน โดยไม่ต้องแก้ skill
@@ -131,9 +157,16 @@ node $S/init-config.mjs --check              # หลังแก้ theme
 - สคริปต์ใช้ regex/heuristic ไม่ได้ parse TypeScript จริง: `init-config` อ่านค่าที่คำนวณตอน runtime ไม่ได้ (`alpha()`, `darken()`),
   `which-theme` จับจาก `<ComponentName` ไม่ใช่ import, `check-ui` อาจมี false positive/negative
 - ไม่มี visual diff ต้องเปิดหน้าจริงดูเอง
-- รองรับ MUI (`sx`, `createTheme`) เท่านั้น ไม่รองรับ Tailwind / CSS Modules
+- รองรับ MUI และ Tailwind (v3/v4) ยังไม่รองรับ CSS Modules, vanilla-extract, Panda CSS หรือ UnoCSS
+- Tailwind: ยังไม่ได้แยก theme หลายชุด (`dark:`, `[data-theme]`) ใน config — workflow ใน SKILL.md บอกให้ตรวจเอง
 - ไม่ใช่เครื่องมือออกแบบ ถ้าไม่มีแบบ และอยากให้หน้า "สวยขึ้น" ให้ใช้ skill ด้านการออกแบบแทน
 
 ## ผลการทดสอบ
 
-ทดสอบบน [examples/sample-app](examples/sample-app) เทียบ AI ปกติกับ AI + skill ดู [evals/comparison.md](evals/comparison.md)
+ทดสอบบน [examples/sample-app](examples/sample-app) (MUI) และ [examples/sample-tailwind](examples/sample-tailwind) (Tailwind v4)
+เทียบ AI ปกติกับ AI + skill งานละ 2 ชุด รวม 8 รอบ ดู [evals/comparison.md](evals/comparison.md)
+
+| | AI ปกติ | AI + skill |
+|---|---|---|
+| MUI (2 งาน) | 19/20 | 20/20 |
+| Tailwind v4 (2 งาน) | 20/20 | 20/20 |

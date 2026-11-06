@@ -1,0 +1,82 @@
+/* Empty / Waiting on you */
+
+box-sizing: border-box;
+
+/* Auto layout */
+display: flex;
+flex-direction: column;
+align-items: center;
+padding: 48px 24px;
+gap: 12px;
+
+position: absolute;
+width: 384px;
+height: 276px;
+left: 432px;
+top: 212px;
+
+background: #FFFFFF;
+
+/* Icon circle */
+
+display: flex;
+justify-content: center;
+align-items: center;
+width: 56px;
+height: 56px;
+
+background: #E6F4F1;
+border-radius: 999px;
+
+/* Icon */
+
+width: 28px;
+height: 28px;
+color: #0F766E;
+
+/* Nothing is waiting on you */
+
+font-family: 'Inter';
+font-style: normal;
+font-weight: 600;
+font-size: 16px;
+line-height: 24px;
+text-align: center;
+
+color: #101828;
+
+/* Approvals, reviews and requests that need you will show up here */
+
+max-width: 320px;
+font-family: 'Inter';
+font-style: normal;
+font-weight: 400;
+font-size: 14px;
+line-height: 21px;
+text-align: center;
+
+color: #475467;
+
+/* Button / Outlined */
+
+display: flex;
+flex-direction: row;
+justify-content: center;
+align-items: center;
+padding: 6px 16px;
+gap: 8px;
+
+height: 32px;
+
+background: #FFFFFF;
+border: 1px solid #0F766E;
+box-shadow: 0px 1px 2px rgba(16, 24, 40, 0.05);
+border-radius: 8px;
+
+/* View all */
+
+font-family: 'Inter';
+font-weight: 500;
+font-size: 14px;
+line-height: 20px;
+color: #0F766E;

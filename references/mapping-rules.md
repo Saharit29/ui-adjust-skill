@@ -60,3 +60,30 @@ MUI ใช้ `ThemeProvider` ซ้อนกันได้ component ได้
 | `flex: none`, `order`, `flex-grow: 0`, `align-self: stretch` | ค่าภายในของ auto layout |
 | `box-sizing`, `isolation`, `mix-blend-mode` (ถ้าไม่ได้ตั้งใจ) | artefact ของ Figma |
 | ค่า box ของ layer ที่เป็นปุ่ม (padding, radius, height, shadow) | ปุ่มของ design system กำหนด |
+
+## Tailwind CSS (`"format": "tailwind"`)
+
+กติกาเดียวกับข้างบน แต่ผลลัพธ์เป็น utility class และ token คือชื่อใน `@theme` (v4) หรือ `theme` / `theme.extend` (v3)
+
+| Figma | Tailwind | หมายเหตุ |
+|---|---|---|
+| `background: #FEF3F2` (เป็น token `--color-danger-50`) | `bg-danger-50` | ใช้ชื่อ token ของโปรเจกต์ก่อนสีของ Tailwind (`red-50`) เสมอ — init-config ให้ token ของโปรเจกต์ชนะเมื่อ hex ซ้ำ |
+| `color: #0F766E` | `text-brand-600` | ข้อความ/ไอคอนใช้ `text-*` (ไอคอน SVG ใช้ `currentColor`) |
+| `border: 1px solid #EAECF0` | `border border-line` | ความหนา 2px → `border-2` |
+| `rgba(15,118,110,0.1)` | `bg-brand-600/10` | opacity modifier แทน arbitrary rgba |
+| สีนอก theme | `border-[#FDA29B]` + คอมเมนต์ `figma: <layer>` | แล้วเสนอเพิ่ม `--color-…` ใน `@theme` ถ้าจะใช้ซ้ำ |
+| `padding: 4px 8px` | `px-2 py-1` | scale = `--spacing` (default 4px): 2px → `0.5`, 6px → `1.5`, 12px → `3` |
+| `gap: 12px` | `gap-3` | |
+| `font-size: 14px` | `text-sm` | ใช้ขนาดจาก config (`typography`) ไม่ต้องใส่ `leading-*` ถ้าแบบไม่ต่างชัด |
+| `font-weight: 600` | `font-semibold` | 400 ไม่ต้องใส่ |
+| `border-radius: 6px` | `rounded-md` | ตาม `radius` ใน config (v4: sm 4, md 6, lg 8, xl 12 · v3: DEFAULT 4, md 6, lg 8) · pill → `rounded-full` |
+| `max-width: 320px` | `max-w-xs` | ตาม `containers` ใน config |
+| `box-shadow` ที่ตรง token | `shadow-sm` / `shadow-xs` | ไม่ตรง → ถาม หรือใช้ border |
+| `width: 56px; height: 56px` ของกรอบไอคอน | `size-14` | เก็บเฉพาะไอคอน/กรอบไอคอน/avatar — container ทั่วไปให้เนื้อหากำหนด |
+| `position: absolute; left: 1164px` | (ทิ้ง) | |
+| `font-family: 'Inter'` | (ทิ้ง) | `--font-sans` ของ theme |
+
+- **arbitrary value (`[…]`) เป็นทางเลือกสุดท้าย** ใช้ได้เมื่อไม่มี token จริง ๆ และต้องแจ้งในรายงาน
+- **ปุ่ม/badge/input ของ design system** มักมี `variant` / `size` อยู่แล้ว (`cva`, object map) — เลือกจากที่มี อย่าส่ง `className` ทับขนาด/มุม/น้ำหนัก
+- **รวม class** ด้วย helper ที่ไฟล์ใช้อยู่ (`cn`, `clsx`, `twMerge`) และคงลำดับ/โครงสร้างเงื่อนไขเดิม
+- **โหมดมืด**: ถ้าโปรเจกต์ใช้ `dark:` ให้ใส่คู่ `dark:` ด้วย token เช่นกัน ถ้า token เป็น CSS variable ที่สลับตาม theme อยู่แล้ว ไม่ต้องใส่

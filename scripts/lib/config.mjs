@@ -98,7 +98,10 @@ export function mapColor(hex, theme, near = 40) {
   if (theme.colors[hex]) return { kind: "exact", token: theme.colors[hex] };
   if (theme.handled[hex]) return { kind: "theme-handled", note: theme.handled[hex] };
   let best = null;
+  // Tailwind configs list the project's own tokens in projectColors — only those are snap candidates
+  const allowed = theme.projectColors?.length ? new Set(theme.projectColors) : null;
   for (const [h, token] of Object.entries(theme.colors)) {
+    if (allowed && !allowed.has(token)) continue;
     const d = colorDistance(hex, h);
     if (!best || d < best.d) best = { h, token, d };
   }

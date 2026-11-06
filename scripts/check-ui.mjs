@@ -29,7 +29,8 @@ const tokenName = (hex) => {
 };
 const norm = (f) => f.replace(/\\/g, "/");
 const rel = (file) => norm(path.relative(process.cwd(), path.resolve(file)));
-const under = (file, dirs) => dirs.some((d) => rel(file).startsWith(norm(d).replace(/\/?$/, "/")));
+// a path entry can be a directory (prefix match) or a single file (exact match)
+const under = (file, dirs) => dirs.some((d) => rel(file) === norm(d) || rel(file).startsWith(norm(d).replace(/\/?$/, "/")));
 const isThemeFile = (file) => under(file, cfg.paths.themeSources ?? []);
 const isFeatureFile = (file) => under(file, cfg.paths.features ?? ["src"]);
 const C = cfg.components ?? {};
@@ -57,10 +58,10 @@ function addedLines(file) {
 if (diffMode && files.length === 0) {
   const changed = execSync("git diff --name-only HEAD", { encoding: "utf8" }).split("\n");
   const untracked = execSync("git ls-files --others --exclude-standard", { encoding: "utf8" }).split("\n");
-  files = [...changed, ...untracked].filter((f) => /\.tsx$/.test(f) && fs.existsSync(f));
+  files = [...changed, ...untracked].filter((f) => /\.(tsx|jsx|vue|svelte|astro|html)$/.test(f) && fs.existsSync(f));
 }
 if (files.length === 0) {
-  console.error("usage: check-ui.mjs [--diff] [--json] <file.tsx ...>");
+  console.error("usage: check-ui.mjs [--diff] [--json] <file.tsx|.jsx|.vue|.svelte|.html ...>");
   process.exit(2);
 }
 
@@ -139,6 +140,87 @@ const RULES = [
   },
 ];
 
+// ── Tailwind: arbitrary values that should be theme utilities ──
+const T0 = Object.values(cfg.themes)[0];
+const TW_COLOR_UTIL = "bg|text|border(?:-[trblxy])?|ring|ring-offset|outline|fill|stroke|from|via|to|divide|decoration|accent|caret|placeholder";
+const strings = (line) => [...line.matchAll(/(["'`])((?:\\.|(?!\1).)*)\1/g)].map((m) => m[2]);
+const twClasses = (line) => strings(line).flatMap((s) => s.split(/\s+/)).filter(Boolean);
+const nearestKey = (table, n) => Object.entries(table ?? {}).find(([, v]) => Math.abs(v - n) < 0.01)?.[0];
+const TW_RULES = [
+  {
+    id: "tw-token-arbitrary", level: "FAIL",
+    desc: "arbitrary color equals a theme token — use the utility (bg-[#FEF3F2] → bg-danger-50)",
+    scan: (line) => twClasses(line).flatMap((c) => {
+      const m = c.match(new RegExp(`^((?:[\\w-]+:)*)(${TW_COLOR_UTIL})-\\[(#[0-9A-Fa-f]{3,8})\\](\\/\\d+)?$`));
+      const hex = m && normalizeHex(m[3]);
+      if (!hex || !tokenHexes.has(hex)) return [];
+      return [`${c} → ${m[1]}${m[2]}-${describeToken(index, hex)}${m[4] ?? ""}`];
+    }),
+  },
+  {
+    id: "tw-offpalette-arbitrary", level: "WARN",
+    desc: "arbitrary color not in the theme — add a token to @theme / tailwind.config, or justify with a `figma:` comment",
+    scan: (line) => (/figma/i.test(line) ? [] : twClasses(line).flatMap((c) => {
+      const m = c.match(new RegExp(`(${TW_COLOR_UTIL})-\\[(#[0-9A-Fa-f]{3,8})\\]`));
+      const hex = m && normalizeHex(m[2]);
+      return hex && !tokenHexes.has(hex) ? [c] : [];
+    })),
+  },
+  {
+    id: "tw-arbitrary-spacing", level: "WARN",
+    desc: `arbitrary px on the spacing scale — use the scale (1 = ${cfg.spacingUnit}px): p-[16px] → p-${16 / cfg.spacingUnit}`,
+    scan: (line) => twClasses(line).flatMap((c) => {
+      const m = c.match(/^((?:[\w-]+:)*-?)(p[trblxy]?|m[trblxy]?|gap(?:-[xy])?|space-[xy]|w|h|size|min-w|min-h|top|left|right|bottom|inset(?:-[xy])?)-\[(\d+(?:\.\d+)?)px\]$/);
+      if (!m) return [];
+      const steps = Number(m[3]) / cfg.spacingUnit;
+      // large offsets are artboard coordinates (tw-absolute-coords), not spacing
+      if (/^(top|left|right|bottom|inset)/.test(m[2]) && steps > 24) return [];
+      return Number.isInteger(steps * 2) ? [`${c} → ${m[1]}${m[2]}-${steps}`] : [];
+    }),
+  },
+  {
+    id: "tw-arbitrary-text", level: "WARN",
+    desc: "arbitrary font size that matches a text-* size — use it (text-[14px] → text-sm)",
+    scan: (line) => twClasses(line).flatMap((c) => {
+      const m = c.match(/^(?:[\w-]+:)*text-\[(\d+(?:\.\d+)?)(px|rem)\]$/);
+      if (!m) return [];
+      const k = nearestKey(T0?.typography, Number(m[1]) * (m[2] === "rem" ? 16 : 1));
+      return k ? [`${c} → text-${k}`] : [];
+    }),
+  },
+  {
+    id: "tw-arbitrary-radius", level: "WARN",
+    desc: "arbitrary radius that matches a rounded-* token — use it (rounded-[6px] → rounded-md)",
+    scan: (line) => twClasses(line).flatMap((c) => {
+      const m = c.match(/^(?:[\w-]+:)*rounded(-[trbl]{1,2}|-[se]{1,2})?-\[(\d+(?:\.\d+)?)px\]$/);
+      if (!m) return [];
+      const k = nearestKey(T0?.radius, Number(m[2]));
+      return k ? [`${c} → rounded${m[1] ?? ""}${k === "DEFAULT" ? "" : `-${k}`}`] : [];
+    }),
+  },
+  {
+    id: "tw-font-family", level: "FAIL",
+    desc: "arbitrary font family — the theme's font-sans already applies",
+    scan: (line) => twClasses(line).filter((c) => /^(?:[\w-]+:)*font-\[['"]?[A-Za-z]/.test(c) && !/^font-\[\d/.test(c)),
+  },
+  {
+    id: "tw-important", level: "FAIL",
+    desc: "important modifier (!p-4 / p-4!) — fix the class order or the component API instead",
+    scan: (line) => twClasses(line).filter((c) => /^(?:[\w-]+:)*![a-z]/.test(c) || /^[a-z][\w\-[\]/.:#]*[\w\]]!$/.test(c)),
+  },
+  {
+    id: "tw-absolute-coords", level: "WARN",
+    desc: "absolute + artboard coordinates — usually copied from the Figma frame",
+    scan: (line) => (twClasses(line).includes("absolute") && twClasses(line).some((c) => /^(left|top|right|bottom)-\[\d{3,}px\]$/.test(c)) ? ["absolute + coords"] : []),
+  },
+  {
+    id: "tw-arbitrary-shadow", level: "WARN",
+    desc: "arbitrary shadow — use a shadow-* token or a border",
+    scan: (line) => twClasses(line).filter((c) => /^(?:[\w-]+:)*shadow-\[/.test(c)),
+  },
+];
+RULES.push(...TW_RULES);
+
 const FILE_RULES = [
   {
     id: "icon-button-label", level: "FAIL",
@@ -151,12 +233,13 @@ const FILE_RULES = [
     id: "shared-size-override", level: "WARN",
     desc: `${SIZED.join("/") || "shared component"} sx overrides height/radius/shadow/weight — that is the design-system standard; report it as a deviation or ask, don't fight the component`,
     scan: (text) => SIZED.flatMap((name) => openingTags(text, name)
-      .filter((t) => /sx=\{[\s\S]*\b(minHeight|height|borderRadius|boxShadow|fontWeight)\s*:/.test(t.text))
-      .map((t) => ({ line: lineOf(text, t.index), hit: `<${name} sx> size/shape override` }))),
+      .filter((t) => /sx=\{[\s\S]*\b(minHeight|height|borderRadius|boxShadow|fontWeight)\s*:/.test(t.text) ||
+        /className=[\s\S]*(?:^|["'`\s])(?:[\w-]+:)*(h-|min-h-|rounded|shadow|font-(?:thin|light|normal|medium|semibold|bold|black)\b)/.test(t.text))
+      .map((t) => ({ line: lineOf(text, t.index), hit: `<${name}> size/shape override in sx/className` }))),
   },
   {
     id: "icon-aria-label", level: "FAIL",
-    desc: "aria-label on an MUI *Icon is ignored (SvgIcon sets aria-hidden unless titleAccess) — use titleAccess, or put the label on the wrapper/text",
+    desc: "aria-label on an *Icon component is usually ignored — MUI SvgIcon and most icon kits set aria-hidden unless given a title (MUI: titleAccess) — use that prop, or put the label on the wrapper/text",
     scan: (text) => [...text.matchAll(/<[A-Z][A-Za-z]*Icon\b/g)]
       .map((m) => openingTags(text.slice(m.index), m[0].slice(1))[0])
       .filter(Boolean)

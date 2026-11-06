@@ -43,7 +43,15 @@ export function scanAssignments(text) {
     }
     if (t === "{") { stack.push(decl ?? pendingKey ?? ""); decl = null; pendingKey = null; continue; }
     if (t === "}") { stack.pop(); pendingKey = null; continue; }
-    if (t === "[") { i = skipBalanced(i, "[", "]"); pendingKey = null; continue; }
+    if (t === "[") {
+      // `sm: ["14px", { lineHeight }]` (Tailwind fontSize) → keep the first string element
+      const first = unquote(toks[i + 1] ?? "");
+      const key = decl ?? pendingKey;
+      if (key && first !== null) out.set(here(key), { str: first });
+      i = skipBalanced(i, "[", "]");
+      pendingKey = null; decl = null;
+      continue;
+    }
     if (t === "...") { i++; continue; }
     if (t === ":" ) continue;
     if (t === "," || t === ";") { pendingKey = null; decl = null; continue; }

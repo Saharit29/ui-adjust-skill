@@ -1,18 +1,20 @@
 #!/usr/bin/env node
-// Convert Figma "Copy as CSS" output into an MUI `sx` suggestion that uses the project's theme tokens
-// (read from ui-adjust.config.json — see templates/ui-adjust.config.example.json).
+// Convert Figma "Copy as CSS" output into code that uses the project's theme tokens
+// (read from ui-adjust.config.json — see templates/ui-adjust.config.example.json):
+// an MUI `sx` object, or Tailwind utility classes when the config says "format": "tailwind".
 //
-//   node <skill>/scripts/figma-css-to-sx.mjs <file.css> [--theme <name>] [--config <path>]
+//   node <skill>/scripts/figma-css-to-sx.mjs <file.css> [--theme <name>] [--format mui|tailwind] [--config <path>]
 //   cat figma.css | node <skill>/scripts/figma-css-to-sx.mjs - --theme dense
 //
 // Output, per Figma layer (block):
-//   - suggested sx object (tokens, spacing units, typography variant)
+//   - suggested sx object / className (tokens, spacing scale, typography variant / text-* size)
 //   - DROPPED: Figma layout noise that must not be copied (absolute position, fixed size, font-family…)
 //   - REVIEW: values that did not map to a token — decide, don't silently hardcode
 // --json prints the machine-readable result instead.
 
 import fs from "node:fs";
 import { loadConfig, pickTheme, mapColor, normalizeHex, rgbToHex } from "./lib/config.mjs";
+import { convertTailwind } from "./lib/to-tailwind.mjs";
 
 const args = process.argv.slice(2);
 const flag = (name, fallback) => {
@@ -25,10 +27,11 @@ const theme = T.name;
 const SPACING_UNIT = cfg.spacingUnit;
 const RADIUS_UNIT = cfg.radiusUnit;
 const BUTTON = cfg.components?.button ?? "Button";
+const FORMAT = flag("--format", cfg.format ?? "mui");
 const asJson = args.includes("--json");
-const input = args.find((a, i) => !a.startsWith("--") && !["--theme", "--config"].includes(args[i - 1]));
+const input = args.find((a, i) => !a.startsWith("--") && !["--theme", "--config", "--format"].includes(args[i - 1]));
 if (!input) {
-  console.error(`usage: figma-css-to-sx.mjs <file.css|-> [--theme ${Object.keys(cfg.themes).join("|")}] [--config path] [--json]`);
+  console.error(`usage: figma-css-to-sx.mjs <file.css|-> [--theme ${Object.keys(cfg.themes).join("|")}] [--format mui|tailwind] [--config path] [--json]`);
   process.exit(2);
 }
 const css = fs.readFileSync(input === "-" ? 0 : input, "utf8");
@@ -285,15 +288,18 @@ function convert(block) {
   return { name: block.name, element, sx, dropped, review };
 }
 
-const blocks = parseBlocks(css).map(convert);
+const blocks = FORMAT === "tailwind"
+  ? parseBlocks(css).map((b) => convertTailwind(b, { cfg, theme: T, button: cfg.components?.button }))
+  : parseBlocks(css).map(convert);
 
 if (asJson) {
-  console.log(JSON.stringify({ theme, blocks }, null, 2));
+  console.log(JSON.stringify({ theme, format: FORMAT, blocks }, null, 2));
 } else {
-  console.log(`theme: ${theme} (${T.wrapper ? `inside <${T.wrapper}>` : "default theme"}) · config: ${cfg.__path}\n`);
+  console.log(`format: ${FORMAT} · theme: ${theme} (${T.wrapper ? `inside <${T.wrapper}>` : "default theme"}) · config: ${cfg.__path}\n`);
   for (const b of blocks) {
     console.log(`── ${b.name}`);
-    console.log(`<${b.element} sx={${JSON.stringify(b.sx, null, 0).replace(/"\(t\) => ([^"]+)"/g, "(t) => $1")}} />`);
+    if (FORMAT === "tailwind") console.log(`<${b.element}${b.classes.length ? ` className="${b.classes.join(" ")}"` : ""} />`);
+    else console.log(`<${b.element} sx={${JSON.stringify(b.sx, null, 0).replace(/"\(t\) => ([^"]+)"/g, "(t) => $1")}} />`);
     for (const d of b.dropped) console.log(`  DROPPED  ${d}`);
     for (const r of b.review) console.log(`  REVIEW   ${r}`);
     console.log();

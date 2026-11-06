@@ -42,14 +42,14 @@
           },
           "colors": {
             "type": "object",
-            "description": "#HEX → palette token path",
+            "description": "#HEX → MUI palette path (error.light) or Tailwind color name (danger-50)",
             "additionalProperties": {
               "type": "string"
             }
           },
           "typography": {
             "type": "object",
-            "description": "variant → px",
+            "description": "MUI: variant → px · Tailwind: text-* key → px",
             "additionalProperties": {
               "type": "number"
             }
@@ -63,10 +63,31 @@
           },
           "shadows": {
             "type": "object",
-            "description": "theme.shadows index → box-shadow",
+            "description": "MUI: theme.shadows index → box-shadow · Tailwind: shadow-* key → value",
             "additionalProperties": {
               "type": "string"
             }
+          },
+          "radius": {
+            "type": "object",
+            "description": "Tailwind: rounded-* key → px",
+            "additionalProperties": {
+              "type": "number"
+            }
+          },
+          "containers": {
+            "type": "object",
+            "description": "Tailwind: max-w-* key → px",
+            "additionalProperties": {
+              "type": "number"
+            }
+          },
+          "projectColors": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Tailwind: the project's own color tokens — the only ones a near color may snap to"
           }
         }
       }
@@ -146,6 +167,14 @@
       "items": {
         "type": "string"
       }
+    },
+    "format": {
+      "enum": [
+        "mui",
+        "tailwind"
+      ],
+      "default": "mui",
+      "description": "Which converter output and check-ui rules apply"
     }
   }
 }

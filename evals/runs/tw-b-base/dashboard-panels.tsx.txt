@@ -1,0 +1,56 @@
+import type { ComponentType, ReactNode, SVGProps } from "react";
+import { Button, InboxIcon, InsightsIcon, MegaphoneIcon } from "@/components/ui";
+
+type EmptyStateProps = {
+  icon: ComponentType<SVGProps<SVGSVGElement>>;
+  title: string;
+  subtitle: string;
+  action?: { label: string; href: string };
+};
+
+function EmptyState({ icon: Icon, title, subtitle, action }: EmptyStateProps) {
+  return (
+    <div className="flex flex-col items-center gap-3 px-6 py-12 text-center">
+      <div className="flex size-14 items-center justify-center rounded-full bg-brand-50 text-brand-600">
+        <Icon className="size-7" />
+      </div>
+      <p className="text-base font-semibold text-ink">{title}</p>
+      <p className="max-w-80 text-sm leading-normal text-ink-muted">{subtitle}</p>
+      {action && (
+        <Button variant="outline" size="sm" href={action.href}>
+          {action.label}
+        </Button>
+      )}
+    </div>
+  );
+}
+
+function Panel({ title, children }: { title: string; children: ReactNode }) {
+  return (
+    <section className="rounded-lg border border-line bg-surface">
+      <h2 className="border-b border-line px-5 py-4 text-base font-semibold text-ink">{title}</h2>
+      {children}
+    </section>
+  );
+}
+
+export function DashboardPanels() {
+  return (
+    <div className="grid gap-6 md:grid-cols-3">
+      <Panel title="Insights">
+        <EmptyState icon={InsightsIcon} title="No insights yet" subtitle="Charts appear once your first data source is connected." />
+      </Panel>
+      <Panel title="Waiting on you">
+        <EmptyState
+          icon={InboxIcon}
+          title="Nothing is waiting"
+          subtitle="Approvals and requests that need you will show up here."
+          action={{ label: "View all", href: "/inbox" }}
+        />
+      </Panel>
+      <Panel title="Announcements">
+        <EmptyState icon={MegaphoneIcon} title="No announcements" subtitle="Company news and events will be listed here." />
+      </Panel>
+    </div>
+  );
+}

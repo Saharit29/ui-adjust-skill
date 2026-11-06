@@ -1,12 +1,12 @@
 ---
 name: ui-adjust
-description: ปรับ UI ของหน้าจอ/component React + MUI ที่มีอยู่แล้วให้ตรงกับแบบ (ภาพ Figma, CSS ที่ copy จาก Figma หรือคำบรรยาย) โดยแปลงค่าในแบบเป็น theme token ของ theme ที่ component นั้นอยู่จริง (รองรับ ThemeProvider ซ้อน), ใช้ shared component ของโปรเจกต์แทนการเขียนใหม่, ไม่ลอก layout noise ของ Figma (absolute, width/height ตายตัว, font-family) แล้วตรวจผลด้วยสคริปต์ + typecheck/lint และรายงานจุดที่ต่างจากแบบ ใช้เมื่อผู้ใช้สั่ง /ui-adjust, ส่งภาพแบบหรือ CSS จาก Figma มาให้ปรับหน้า, ขอ "ปรับ UI ตามแบบ", "แก้ให้เหมือน figma", "match the design", "จัด spacing/สี/ฟอนต์ให้ตรงแบบ" — ไม่ใช่สำหรับออกแบบใหม่จากศูนย์หรือวิจารณ์ความสวยงาม
+description: ปรับ UI ของหน้าจอ/component ที่มีอยู่แล้วให้ตรงกับแบบ (ภาพ Figma, CSS ที่ copy จาก Figma หรือคำบรรยาย) ในโปรเจกต์ MUI (React) หรือ Tailwind CSS (React/Vue/Svelte/HTML) โดยแปลงค่าในแบบเป็น theme token ของโปรเจกต์ (MUI sx + typography variant ของ theme ที่ component อยู่จริง รองรับ ThemeProvider ซ้อน / Tailwind utility จาก @theme หรือ tailwind.config แทน arbitrary value), ใช้ shared component ของโปรเจกต์แทนการเขียนใหม่, ไม่ลอก layout noise ของ Figma (absolute, width/height ตายตัว, font-family) แล้วตรวจผลด้วยสคริปต์ + typecheck/lint และรายงานจุดที่ต่างจากแบบ ใช้เมื่อผู้ใช้สั่ง /ui-adjust, ส่งภาพแบบหรือ CSS จาก Figma มาให้ปรับหน้า, ขอ "ปรับ UI ตามแบบ", "แก้ให้เหมือน figma", "match the design", "จัด spacing/สี/ฟอนต์ให้ตรงแบบ" — ไม่ใช่สำหรับออกแบบใหม่จากศูนย์หรือวิจารณ์ความสวยงาม
 ---
 
 # ui-adjust — ปรับ UI ให้ตรงแบบ โดยใช้ design system ของโปรเจกต์
 
-เป้าหมาย: **หน้าจอดูเหมือนแบบ และโค้ดยังเป็นของ design system** หมายถึงสีเป็น token, ระยะเป็น spacing unit,
-ตัวอักษรเป็น variant, ปุ่ม/dialog/ตารางเป็น shared component เพื่อให้เปลี่ยน theme ครั้งเดียวแล้วทุกหน้าตาม
+เป้าหมาย: **หน้าจอดูเหมือนแบบ และโค้ดยังเป็นของ design system** หมายถึงสีเป็น token, ระยะเป็น spacing scale,
+ตัวอักษรเป็น variant / `text-*`, ปุ่ม/dialog/ตารางเป็น shared component เพื่อให้เปลี่ยน theme ครั้งเดียวแล้วทุกหน้าตาม
 การลอกค่า px/hex จาก Figma ตรง ๆ ทำให้หน้าเหมือนแบบได้ในวันนี้ แต่จะหลุดจาก theme ทันทีที่ theme เปลี่ยน
 และมักผิดตั้งแต่แรกในโปรเจกต์ที่มี theme ซ้อน เพราะ token เดียวกันให้ค่าต่างกันในแต่ละ theme
 
@@ -15,11 +15,15 @@ description: ปรับ UI ของหน้าจอ/component React + MUI �
 ## ก่อนเริ่ม: config ของโปรเจกต์
 
 สคริปต์อ่าน token, component และ path จาก `ui-adjust.config.json` (ที่ root หรือ `.claude/ui-adjust.config.json`)
+`"format"` ใน config บอกว่าโปรเจกต์เป็น `"mui"` (default) หรือ `"tailwind"` — ทุกขั้นข้างล่างแยกตาม format นี้
 
 - **ไม่มี config** → สร้างก่อน แล้วให้ผู้ใช้ตรวจ (ดู `references/config.md`):
   ```bash
+  # MUI
   node $S/init-config.mjs --theme app=<palette/theme files> [--theme dense=<file> --wrapper dense=<WrapperComponent>] \
     --components <shared components index.ts> --features <feature dir>
+  # Tailwind v4 (CSS ที่มี @theme) หรือ v3 (tailwind.config.*)
+  node $S/init-config.mjs --tailwind <src/app.css | tailwind.config.js> --components <components/ui dir> --features <feature dir>
   ```
 - **มี config** → `node $S/init-config.mjs --check` ถ้ามี DRIFT/NEW แปลว่า theme เปลี่ยนแล้ว config ยังไม่ตาม แจ้งผู้ใช้
 - อ่านไฟล์ใน `docs` ของ config (ถ้ามี) — เป็นเอกสารเฉพาะโปรเจกต์ (สีพิเศษ, กติกา component) ที่มีน้ำหนักเหนือ skill นี้
@@ -47,8 +51,11 @@ description: ปรับ UI ของหน้าจอ/component React + MUI �
 ### 1. หาเป้าหมายและ theme ที่ครอบอยู่ (ยังไม่แก้ไฟล์)
 
 ```bash
-node $S/which-theme.mjs <component file>
+node $S/which-theme.mjs <component file>     # React (MUI หรือ provider อื่นที่ประกาศ wrapper ใน config)
 ```
+
+**Tailwind:** ปกติมี theme เดียว ข้ามสคริปต์นี้ได้ แต่ดูว่าหน้าใช้ `dark:` หรือ scope ของ CSS variables (`[data-theme=…]`)
+ไหม ถ้าแบบมีโหมดมืด ต้องใส่ `dark:` ด้วย token เช่นกัน
 
 สคริปต์ไล่ว่าใคร render component นี้ จนเจอ wrapper ของ theme ที่ประกาศใน config (`themes.<name>.wrapper`)
 
@@ -68,7 +75,7 @@ node $S/figma-css-to-sx.mjs <file.css> --theme <name>
 ```
 
 ได้ 3 ส่วนต่อ layer:
-- **sx ที่แนะนำ** — token, spacing unit, variant ของ theme นั้น
+- **sx ที่แนะนำ** (MUI) หรือ **className** (Tailwind: `bg-danger-50 px-2 py-1 rounded-md text-sm font-bold`) — ใช้ token ของโปรเจกต์
 - **DROPPED** — noise ของ Figma ที่ห้ามลอก (`position: absolute` + `left/top`, width/height ตายตัว, `font-family`, `flex: none`, `order`, line-height ที่ variant กำหนดให้แล้ว)
 - **REVIEW** — ค่าที่ไม่ลง token → ตัดสินใจตามขั้น 4
 
@@ -83,16 +90,19 @@ node $S/figma-css-to-sx.mjs <file.css> --theme <name>
 - `ls` โฟลเดอร์ components ของ feature นั้น — มี component/map สถานะ → สี ที่ทำหน้าที่ใกล้เคียงอยู่แล้วไหม ถ้ามี map เดิม **ต้องเพิ่มเข้า map เดิม**
 - เปิดไฟล์ theme ของ theme นั้น (`themes.<name>.sources`) ดู `components` overrides — ค่าในแบบที่ตรงกับ override
   (ความสูงปุ่ม, ขอบ Card, padding ของ TableCell, radius) **ไม่ต้องใส่ใน sx**
+- **Tailwind:** shared component มักกำหนด variant/size ไว้ใน component เอง (`variants`, `cva()`, `sizes`) — เลือก variant/size ที่มี
+  แทนการส่ง `className` ทับ `h-*`, `rounded-*`, `font-*`, `shadow-*` ถ้าแบบต้องการขนาดที่ไม่มี → ถาม (เพิ่ม variant เป็นเรื่องของ design system)
+  รวม class ด้วย helper ของโปรเจกต์ (`cn()`, `clsx`, `twMerge`) ตามที่ไฟล์เดิมใช้
 
 ### 4. ตัดสินใจกับค่าที่ไม่ลงตัว
 
 | กรณี | ทำ |
 |---|---|
 | สีห่างจาก token เล็กน้อย (สคริปต์บอก `≈ token`) | ใช้ token แจ้งในรายงาน |
-| สีนอก palette ที่แบบตั้งใจ (สถานะ, กราฟ, ขอบพิเศษ) | const UPPER_CASE บนสุดของไฟล์ หรือเพิ่มเข้า map เดิมของ feature พร้อม `// figma: <layer>` |
+| สีนอก palette ที่แบบตั้งใจ (สถานะ, กราฟ, ขอบพิเศษ) | MUI: const UPPER_CASE บนสุดของไฟล์ หรือเพิ่มเข้า map เดิมของ feature พร้อม `// figma: <layer>` · Tailwind: arbitrary value (`border-[#FDA29B]`) พร้อมคอมเมนต์ `figma: <layer>` ในบรรทัดเดียวกัน แล้วเสนอให้เพิ่ม token ใน `@theme` |
 | สีใหม่ที่ต้องใช้ ≥ 2 feature, หรือแบบขัดกับ theme override/มาตรฐาน shared component (ความสูงปุ่ม, radius, เงา) | **หยุดถามผู้ใช้** ห้ามแก้ palette/theme เอง และห้าม sx ทับ shared component เพื่อให้ตรงแบบเป๊ะ |
 | ระยะนอก grid ของ spacing | ปัดเข้า grid แจ้งในรายงาน |
-| fontSize ไม่ตรง variant (> 1px) | variant ใกล้สุด + `fontSize` เป็น rem |
+| fontSize ไม่ตรง variant / `text-*` (> 1px) | MUI: variant ใกล้สุด + `fontSize` เป็น rem · Tailwind: `text-*` ใกล้สุด แจ้งในรายงาน (ใช้ `text-[13px]` เฉพาะเมื่อแบบยืนยัน) |
 | width/height ตายตัว | ทิ้ง ยกเว้นไอคอน, avatar, วงกลม/กรอบไอคอน, คอลัมน์ตาราง, control ที่ต้องกว้างคงที่ |
 
 ### 5. แก้โค้ด
@@ -101,7 +111,7 @@ node $S/figma-css-to-sx.mjs <file.css> --theme <name>
 - ข้อความ (copy) คัดลอกจากแบบตรงตัว ถ้าต่างจากโค้ดเดิม ให้บอกในรายงาน
 - ใช้ pattern เดิมของไฟล์ (เช่น `Stack direction/spacing` แทน `display: flex + gap`)
 - ใส่ state ที่แบบไม่ได้วาดแต่ต้องมี: hover/focus-visible ของสิ่งที่คลิกได้, disabled, loading, ค่าว่าง, ข้อความยาว (wrap/ellipsis), ตัวเลขยาว (`tabular-nums`, `nowrap`)
-- a11y: `IconButton` ต้องมี `aria-label` · **`aria-label` บน MUI `*Icon` ใช้ไม่ได้** (SvgIcon ใส่ `aria-hidden` ให้เองถ้าไม่มี `titleAccess`) → ใช้ `titleAccess` หรือใส่ label ที่ข้อความ/wrapper · ความหมายต้องไม่พึ่งสีอย่างเดียว · ลิงก์ใช้ `href`/`component={Link}` ไม่ใช่ `onClick` + router
+- a11y: ปุ่มที่มีแต่ไอคอนต้องมี `aria-label` · **`aria-label` บน icon component มักใช้ไม่ได้** — MUI `SvgIcon` และ icon component ส่วนใหญ่ใส่ `aria-hidden` ให้เองถ้าไม่ได้ส่ง title (MUI: `titleAccess`, อื่น ๆ: ดู prop `title` ของ component) → เปิดไฟล์ icon ดูว่ารับ prop อะไร หรือใส่ label ที่ข้อความ/wrapper · ความหมายต้องไม่พึ่งสีอย่างเดียว · ลิงก์ใช้ `href`/`component={Link}` ไม่ใช่ `onClick` + router
 - ต้องแก้ shared component: เพิ่ม prop optional เท่านั้น แล้วนับจุดที่ใช้ (`grep -rn "<Component" src | wc -l`) ใส่ในรายงาน
 - กติกา lint/compiler ของโปรเจกต์ (ดู CLAUDE.md / README ของโปรเจกต์) มาก่อน skill นี้เสมอ
 
@@ -113,9 +123,11 @@ node $S/check-ui.mjs --diff           # เฉพาะบรรทัดที�
 <build>                               # เมื่อแก้ shared component / theme
 ```
 
-`check-ui.mjs` ตรวจ 13 ข้อ — FAIL: hex ที่เป็น token อยู่แล้ว, `fontFamily`, `!important`, `IconButton` ไม่มี label,
-`aria-label` บน MUI Icon · WARN: สีนอก palette inline, absolute + พิกัด, px spacing, fontSize px, เงา literal,
-sx ทับขนาด/มุม/เงาของ shared component, `@mui Button` / Dialog ทำเอง ใน feature
+`check-ui.mjs` ตรวจ 22 ข้อ (ไฟล์ `.tsx` `.jsx` `.vue` `.svelte` `.astro` `.html`)
+- ทั่วไป/MUI — FAIL: hex ที่เป็น token อยู่แล้ว, `fontFamily`, `!important`, `IconButton` ไม่มี label, `aria-label` บน icon component ·
+  WARN: สีนอก palette inline, absolute + พิกัด, px spacing, fontSize px, เงา literal, sx/className ทับขนาด/มุม/เงาของ shared component, `@mui Button` / Dialog ทำเอง
+- Tailwind — FAIL: `bg-[#hex]` ที่เป็น token อยู่แล้ว, `font-['…']`, `!` important modifier ·
+  WARN: arbitrary color นอก theme, `p-[16px]` ที่ลง scale, `text-[14px]` ที่ตรง `text-*`, `rounded-[6px]` ที่ตรง `rounded-*`, `shadow-[…]`, absolute + พิกัด
 
 ถ้าเปิดเบราว์เซอร์ได้ ให้เปิดหน้าจริงเทียบกับภาพแบบ ถ้าไม่ได้เปิด บอกตรง ๆ ว่ายังไม่ได้ดูบนจอ
 
@@ -139,6 +151,7 @@ sx ทับขนาด/มุม/เงาของ shared component, `@mui Bu
 ## ข้อห้าม
 
 - ห้ามใส่ hex/px ที่มี token อยู่แล้ว, `fontFamily`, `!important`, `position: absolute` + พิกัดจาก artboard
+- Tailwind: ห้าม arbitrary value (`bg-[#…]`, `p-[16px]`, `text-[14px]`, `rounded-[6px]`) เมื่อมี utility ของ theme ที่ตรงกัน
 - ห้ามใช้ variant/token ของ theme ผิดตัว — ตรวจ theme ก่อนเสมอ
 - ห้ามสร้างปุ่ม/dialog/empty state/ตารางใหม่เมื่อโปรเจกต์มี shared component
 - ห้าม sx ทับขนาด/มุม/เงา/น้ำหนักของ shared component เพื่อให้ตรงแบบหน้าเดียว — รายงานแทน
