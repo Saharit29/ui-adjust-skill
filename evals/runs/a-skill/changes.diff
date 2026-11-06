@@ -1,0 +1,61 @@
+diff --git a/src/features/billing/components/balance-cell.tsx b/src/features/billing/components/balance-cell.tsx
+index dfef09e..7238d39 100644
+--- a/src/features/billing/components/balance-cell.tsx
++++ b/src/features/billing/components/balance-cell.tsx
+@@ -2,8 +2,11 @@ import WarningAmberRoundedIcon from "@mui/icons-material/WarningAmberRounded";
+ import { Stack, Typography } from "@mui/material";
+ import { formatCurrency, isOverdue } from "../utils/balance";
+ 
++// figma: Balance / Overdue — badge border, outside the dense palette
++const OVERDUE_BORDER = "#FDA29B";
++
+ /** Outstanding balance of a customer account — 3 cases:
+- * overdue = red + icon (not color alone) · open = normal text · nothing owed = muted text.
++ * overdue = red badge + icon (not color alone) · open = normal text · nothing owed = muted text.
+  * `showInvoiceCount` appends "N unpaid invoices" when more than one invoice is open. */
+ export function BalanceCell({
+   balance,
+@@ -20,7 +23,7 @@ export function BalanceCell({
+ }) {
+   if (balance <= 0) {
+     return (
+-      <Typography variant="body2" color="text.secondary">
++      <Typography variant="body2" color="text.disabled">
+         No balance
+       </Typography>
+     );
+@@ -30,9 +33,23 @@ export function BalanceCell({
+ 
+   return (
+     <Stack spacing={0.25} sx={{ alignItems: align }}>
+-      <Stack direction="row" spacing={0.5} sx={{ alignItems: "center" }}>
++      <Stack
++        direction="row"
++        spacing={0.5}
++        sx={[
++          { alignItems: "center" },
++          overdue && {
++            py: 0.5,
++            px: 1,
++            bgcolor: "error.light",
++            border: 1,
++            borderColor: OVERDUE_BORDER,
++            borderRadius: 0.75,
++          },
++        ]}
++      >
+         {overdue ? (
+-          <WarningAmberRoundedIcon aria-label="Overdue" sx={{ fontSize: 16, color: "error.main" }} />
++          <WarningAmberRoundedIcon titleAccess="Overdue" sx={{ fontSize: 16, color: "error.main" }} />
+         ) : null}
+         <Typography
+           variant="body2"
+@@ -47,7 +64,7 @@ export function BalanceCell({
+         </Typography>
+       </Stack>
+       {showInvoiceCount && unpaidInvoices > 1 ? (
+-        <Typography variant="caption" color={overdue ? "error.main" : "text.secondary"}>
++        <Typography variant="caption" color="text.secondary">
+           {unpaidInvoices} unpaid invoices
+         </Typography>
+       ) : null}

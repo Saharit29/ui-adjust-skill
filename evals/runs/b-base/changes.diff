@@ -1,0 +1,66 @@
+diff --git a/src/features/dashboard/components/dashboard-panels.tsx b/src/features/dashboard/components/dashboard-panels.tsx
+index 29a140f..c266a61 100644
+--- a/src/features/dashboard/components/dashboard-panels.tsx
++++ b/src/features/dashboard/components/dashboard-panels.tsx
+@@ -3,16 +3,18 @@ import CampaignRoundedIcon from "@mui/icons-material/CampaignRounded";
+ import InsightsRoundedIcon from "@mui/icons-material/InsightsRounded";
+ import PendingActionsRoundedIcon from "@mui/icons-material/PendingActionsRounded";
+ import { Box, Card, CardContent, Divider, Stack, Typography } from "@mui/material";
++import { AppButton } from "@/components";
+ 
+ interface EmptyStateProps {
+   icon: SvgIconComponent;
+   title: string;
+   subtitle: string;
++  action?: { label: string; href: string };
+ }
+ 
+-function EmptyState({ icon: Icon, title, subtitle }: EmptyStateProps) {
++function EmptyState({ icon: Icon, title, subtitle, action }: EmptyStateProps) {
+   return (
+-    <Box sx={{ py: 6, px: 3, textAlign: "center" }}>
++    <Stack spacing={1.5} sx={{ py: 6, px: 3, alignItems: "center", textAlign: "center" }}>
+       <Box
+         sx={{
+           width: 56,
+@@ -21,21 +23,24 @@ function EmptyState({ icon: Icon, title, subtitle }: EmptyStateProps) {
+           display: "flex",
+           alignItems: "center",
+           justifyContent: "center",
+-          bgcolor: "action.hover",
+-          color: "text.disabled",
+-          mx: "auto",
+-          mb: 1.5,
++          bgcolor: "primary.light",
++          color: "primary.main",
+         }}
+       >
+-        <Icon sx={{ fontSize: 26 }} />
++        <Icon sx={{ fontSize: 28 }} />
+       </Box>
+-      <Typography variant="body2" sx={{ fontWeight: 700 }}>
++      <Typography variant="body1" sx={{ fontWeight: 600, lineHeight: 1.5 }}>
+         {title}
+       </Typography>
+-      <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 0.5 }}>
++      <Typography variant="caption" color="text.secondary" sx={{ display: "block", maxWidth: 320 }}>
+         {subtitle}
+       </Typography>
+-    </Box>
++      {action ? (
++        <AppButton size="small" variant="outlined" href={action.href}>
++          {action.label}
++        </AppButton>
++      ) : null}
++    </Stack>
+   );
+ }
+ 
+@@ -66,6 +71,7 @@ export function DashboardPanels() {
+           icon={PendingActionsRoundedIcon}
+           title="Nothing is waiting"
+           subtitle="Approvals and requests that need you will show up here."
++          action={{ label: "View all", href: "/inbox" }}
+         />
+       </Panel>
+       <Panel title="Announcements">

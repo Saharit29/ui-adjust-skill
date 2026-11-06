@@ -1,0 +1,62 @@
+# Mapping rules — แปลงค่าจาก Figma เป็น MUI theme
+
+กติกาที่สคริปต์ `figma-css-to-sx.mjs` ใช้ และที่ต้องใช้เองเมื่อมีแต่ภาพแบบ ค่าจริงของแต่ละโปรเจกต์อยู่ใน `ui-adjust.config.json`
+
+## theme ซ้อน
+
+MUI ใช้ `ThemeProvider` ซ้อนกันได้ component ได้ theme จาก provider ที่ใกล้ที่สุด **รวม Dialog/Menu/Popover/Tooltip**
+ที่ render ผ่าน portal เพราะ React context ไม่ขาดตาม DOM
+
+ผลคือ `text.secondary`, `body2`, `caption` อาจให้สีหรือขนาดต่างกันในแต่ละ theme เช่นในโปรเจกต์ตัวอย่าง:
+
+| | app theme | dense theme |
+|---|---|---|
+| `text.secondary` | `#475467` | `#344054` |
+| 14px | `caption` | `body2` |
+| 12px | `overline` (ตัวพิมพ์ใหญ่!) → ใช้ `caption` + `fontSize` | `caption` |
+
+ถ้า component ถูกใช้ทั้งในและนอก wrapper ให้ใช้ token เชิงความหมายเท่านั้น และทดสอบทั้งสองบริบท
+
+## สี
+
+1. **ตรง token** → ใช้ path ของ token (`"error.light"`, `"text.secondary"`, `"divider"`)
+2. **`text.primary` บน Typography** → ไม่ต้องใส่ เป็น default
+3. **`#FFFFFF`** → พื้น = `background.paper`, ตัวอักษร/ไอคอนบนพื้นสี = `common.white` หรือ `<color>.contrastText`
+4. **ความโปร่งใส** (`rgba(r,g,b,a)` ของสี token) → `(t) => alpha(t.palette.<token>, a)` (`alpha` จาก `@mui/material/styles`)
+5. **ใกล้ token** (`≈`, ห่างไม่เกิน `nearThreshold`) → ใช้ token แจ้งในรายงาน
+6. **theme ทำให้แล้ว** (`handled` ใน config เช่นสี hover ของปุ่ม, ขอบ input) → ไม่ต้องเขียน
+7. **นอก palette** → อย่า snap เข้า token เงียบ ๆ (สีบนจอจะเปลี่ยน) ให้เป็น const UPPER_CASE + `// figma: <layer>`
+   หรือเพิ่มเข้า map สถานะ → สี ที่ feature มีอยู่ ถ้าต้องใช้ ≥ 2 feature ให้ถามว่าจะเพิ่มเข้า palette หรือไม่
+
+## ระยะ
+
+`theme.spacing(1)` = `spacingUnit` (ปกติ 8px) ใน sx ใช้ตัวเลข: `p: 2` = 16px, `gap: 1.5` = 12px, `0.5` = 4px, `0.25` = 2px
+ค่าที่ไม่ลง grid 2px ให้ปัดเข้า grid แล้วแจ้ง ยกเว้นค่านั้นมาจาก override ของ theme อยู่แล้ว (เช่น padding ของ TableCell)
+
+## ตัวอักษร
+
+- **ห้ามใส่ `fontFamily`** — Figma ใส่มาทุก layer แต่ theme ตั้งไว้แล้ว
+- เลือก variant ที่ขนาดห่างไม่เกิน 1px จาก `themes.<name>.typography` ถ้าเท่ากันหลายตัว เลือก body → caption → heading → subtitle
+  (ข้อความตัวหนา ≥ 600 เลือก heading ก่อน) ไม่เลือก `overline` เว้นแต่แบบเป็นตัวพิมพ์ใหญ่ ไม่เลือก `button` สำหรับข้อความทั่วไป
+- ไม่มี variant ใกล้พอ → variant ใกล้สุด + `fontSize` เป็น rem
+- `line-height` จาก Figma ทิ้งได้เมื่อใช้ variant ใส่เป็น ratio เมื่อแบบต่างชัดเจน
+- `font-weight` ใส่เองได้
+- ตัวเลขเงิน/จำนวน: `fontVariantNumeric: "tabular-nums"` + `whiteSpace: "nowrap"`
+
+## มุม เงา ขอบ
+
+- `borderRadius` ใน sx เป็นตัวคูณของ `theme.shape.borderRadius` (`radiusUnit`): 8px → `1`, 6px → `0.75`, 4px → `0.5`, pill → `"999px"`
+- Card/Paper/Dialog/Button/Input/Chip มักได้ radius จาก theme แล้ว — ตรวจ overrides ก่อนใส่
+- เงา: ตรงกับ `themes.<name>.shadows` → `boxShadow: <index>` ไม่ตรง → ใช้ elevation ที่ใกล้ หรือขอบ `divider` แล้วแจ้ง
+- ขอบ `1px solid <token>` → `border: 1, borderColor: "<token>"`
+
+## สิ่งที่ทิ้งได้เสมอ
+
+| Figma | เหตุผล |
+|---|---|
+| `position: absolute` + `left/top/right/bottom` | พิกัดบน artboard ไม่ใช่ layout |
+| `width`/`height` ตายตัวของ container/ข้อความ | ให้เนื้อหา/flex กำหนด (เก็บไว้เฉพาะไอคอน, avatar, กรอบไอคอน, control กว้างคงที่) |
+| `font-family`, `font-style: normal` | theme กำหนด |
+| `flex: none`, `order`, `flex-grow: 0`, `align-self: stretch` | ค่าภายในของ auto layout |
+| `box-sizing`, `isolation`, `mix-blend-mode` (ถ้าไม่ได้ตั้งใจ) | artefact ของ Figma |
+| ค่า box ของ layer ที่เป็นปุ่ม (padding, radius, height, shadow) | ปุ่มของ design system กำหนด |

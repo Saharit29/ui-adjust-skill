@@ -1,0 +1,151 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "ui-adjust config",
+  "type": "object",
+  "required": [
+    "themes"
+  ],
+  "properties": {
+    "defaultTheme": {
+      "type": "string"
+    },
+    "spacingUnit": {
+      "type": "number",
+      "default": 8
+    },
+    "radiusUnit": {
+      "type": "number",
+      "default": 8
+    },
+    "nearThreshold": {
+      "type": "number",
+      "default": 40
+    },
+    "themes": {
+      "type": "object",
+      "minProperties": 1,
+      "additionalProperties": {
+        "type": "object",
+        "required": [
+          "colors"
+        ],
+        "properties": {
+          "wrapper": {
+            "type": "string",
+            "description": "Component that applies this theme via a nested ThemeProvider"
+          },
+          "sources": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "colors": {
+            "type": "object",
+            "description": "#HEX → palette token path",
+            "additionalProperties": {
+              "type": "string"
+            }
+          },
+          "typography": {
+            "type": "object",
+            "description": "variant → px",
+            "additionalProperties": {
+              "type": "number"
+            }
+          },
+          "handled": {
+            "type": "object",
+            "description": "#HEX → why the theme already applies it",
+            "additionalProperties": {
+              "type": "string"
+            }
+          },
+          "shadows": {
+            "type": "object",
+            "description": "theme.shadows index → box-shadow",
+            "additionalProperties": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "components": {
+      "type": "object",
+      "properties": {
+        "button": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "dialog": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "confirmDialog": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "emptyState": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "table": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "import": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "sizeLocked": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "catalog": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "paths": {
+      "type": "object",
+      "properties": {
+        "features": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "themeSources": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "docs": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  }
+}

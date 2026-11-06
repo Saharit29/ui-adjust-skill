@@ -1,0 +1,122 @@
+{
+  "$schema": "./ui-adjust.config.schema.json",
+  "defaultTheme": "app",
+  "spacingUnit": 8,
+  "radiusUnit": 8,
+  "themes": {
+    "app": {
+      "sources": [
+        "src/theme/palette.ts",
+        "src/theme/typography.ts"
+      ],
+      "colors": {
+        "#0F766E": "primary.main",
+        "#115E59": "primary.dark",
+        "#E6F4F1": "primary.light",
+        "#FFFFFF": "background.paper",
+        "#6941C6": "secondary.main",
+        "#F4F3FF": "secondary.light",
+        "#B42318": "error.main",
+        "#FEF3F2": "error.light",
+        "#912018": "error.dark",
+        "#B54708": "warning.main",
+        "#FFFAEB": "warning.light",
+        "#067647": "success.main",
+        "#ECFDF3": "success.light",
+        "#175CD3": "info.main",
+        "#EFF8FF": "info.light",
+        "#475467": "text.secondary",
+        "#344054": "neutral.dark",
+        "#101828": "text.primary",
+        "#98A2B3": "text.disabled",
+        "#F9FAFB": "background.default",
+        "#EAECF0": "divider"
+      },
+      "typography": {
+        "subtitle1": 18.29,
+        "subtitle2": 16,
+        "h1": 36,
+        "h2": 30,
+        "h3": 24,
+        "h4": 20,
+        "h5": 18,
+        "h6": 17,
+        "body1": 16,
+        "body2": 15,
+        "caption": 14,
+        "overline": 12,
+        "button": 15
+      },
+      "handled": {},
+      "shadows": {
+        "1": "0px 1px 3px 0px rgba(16,24,40,0.10)"
+      }
+    },
+    "dense": {
+      "wrapper": "DenseSection",
+      "sources": [
+        "src/theme/dense-theme.ts"
+      ],
+      "colors": {
+        "#0F766E": "primary.main",
+        "#E6F4F1": "primary.light",
+        "#FFFFFF": "background.paper",
+        "#1D2939": "text.primary",
+        "#344054": "text.secondary",
+        "#667085": "text.disabled",
+        "#D0D5DD": "divider",
+        "#F2F4F7": "background.default",
+        "#B42318": "error.main",
+        "#FEF3F2": "error.light",
+        "#B54708": "warning.main",
+        "#FFFAEB": "warning.light",
+        "#067647": "success.main",
+        "#ECFDF3": "success.light"
+      },
+      "typography": {
+        "h1": 96,
+        "h2": 60,
+        "h3": 48,
+        "h4": 34,
+        "subtitle1": 16,
+        "subtitle2": 14,
+        "overline": 12,
+        "h5": 16,
+        "h6": 15,
+        "body1": 15,
+        "body2": 14,
+        "caption": 12,
+        "button": 14
+      },
+      "handled": {
+        "#0D9488": "contained button hover — MuiButton override in dense-theme.ts already does this"
+      },
+      "shadows": {}
+    }
+  },
+  "components": {
+    "button": "AppButton",
+    "dialog": null,
+    "confirmDialog": null,
+    "emptyState": "EmptyState",
+    "table": null,
+    "import": "@/components",
+    "catalog": [
+      "AppButton",
+      "EmptyState",
+      "DenseSection"
+    ],
+    "sizeLocked": []
+  },
+  "paths": {
+    "features": [
+      "src/features"
+    ],
+    "themeSources": [
+      "src/theme"
+    ]
+  },
+  "docs": [
+    ".claude/ui-adjust/project-notes.md"
+  ]
+}

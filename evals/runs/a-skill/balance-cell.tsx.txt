@@ -1,0 +1,73 @@
+import WarningAmberRoundedIcon from "@mui/icons-material/WarningAmberRounded";
+import { Stack, Typography } from "@mui/material";
+import { formatCurrency, isOverdue } from "../utils/balance";
+
+// figma: Balance / Overdue — badge border, outside the dense palette
+const OVERDUE_BORDER = "#FDA29B";
+
+/** Outstanding balance of a customer account — 3 cases:
+ * overdue = red badge + icon (not color alone) · open = normal text · nothing owed = muted text.
+ * `showInvoiceCount` appends "N unpaid invoices" when more than one invoice is open. */
+export function BalanceCell({
+  balance,
+  overdueAmount,
+  unpaidInvoices,
+  align = "flex-end",
+  showInvoiceCount = true,
+}: {
+  balance: number;
+  overdueAmount: number;
+  unpaidInvoices: number;
+  align?: "flex-start" | "flex-end" | "center";
+  showInvoiceCount?: boolean;
+}) {
+  if (balance <= 0) {
+    return (
+      <Typography variant="body2" color="text.disabled">
+        No balance
+      </Typography>
+    );
+  }
+
+  const overdue = isOverdue({ balance, overdueAmount });
+
+  return (
+    <Stack spacing={0.25} sx={{ alignItems: align }}>
+      <Stack
+        direction="row"
+        spacing={0.5}
+        sx={[
+          { alignItems: "center" },
+          overdue && {
+            py: 0.5,
+            px: 1,
+            bgcolor: "error.light",
+            border: 1,
+            borderColor: OVERDUE_BORDER,
+            borderRadius: 0.75,
+          },
+        ]}
+      >
+        {overdue ? (
+          <WarningAmberRoundedIcon titleAccess="Overdue" sx={{ fontSize: 16, color: "error.main" }} />
+        ) : null}
+        <Typography
+          variant="body2"
+          sx={{
+            fontWeight: 700,
+            fontVariantNumeric: "tabular-nums",
+            color: overdue ? "error.main" : "text.primary",
+            whiteSpace: "nowrap",
+          }}
+        >
+          {formatCurrency(balance)}
+        </Typography>
+      </Stack>
+      {showInvoiceCount && unpaidInvoices > 1 ? (
+        <Typography variant="caption" color="text.secondary">
+          {unpaidInvoices} unpaid invoices
+        </Typography>
+      ) : null}
+    </Stack>
+  );
+}
