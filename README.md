@@ -51,8 +51,8 @@ ui-adjust/
 
 ```bash
 # 1) วาง skill ไว้ในโปรเจกต์ (หรือ ~/.claude/skills/ui-adjust เพื่อใช้ทุกโปรเจกต์)
-git clone https://github.com/<owner>/ui-adjust-skill.git .claude/skills/ui-adjust
-#    หรือเป็น submodule:  git submodule add https://github.com/<owner>/ui-adjust-skill.git .claude/skills/ui-adjust
+git clone https://github.com/Saharit29/ui-adjust-skill.git .claude/skills/ui-adjust
+#    หรือเป็น submodule:  git submodule add https://github.com/Saharit29/ui-adjust-skill.git .claude/skills/ui-adjust
 
 # 2) สร้าง config จากไฟล์ theme ของโปรเจกต์ (รันจาก root ของโปรเจกต์)
 node .claude/skills/ui-adjust/scripts/init-config.mjs \
